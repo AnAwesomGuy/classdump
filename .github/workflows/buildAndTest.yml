@@ -3,50 +3,31 @@ name: Build and Test
 on: [pull_request, push]
 
 jobs:
-  test_latest:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout sources
-        uses: actions/checkout@v4
-      - name: validate gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
-      - name: setup java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-      - name: run test
-        run: |
-          chmod +x ./gradlew
-          ./gradlew runMainTest
-      - name: upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: normal
-          path: build/libs/*.jar
-          compression-level: 1
-
   test_5:
     runs-on: ubuntu-latest
     steps:
       - name: checkout sources
         uses: actions/checkout@v4
+
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v2
+
       - name: setup java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 8
+
       - name: setup gradle
         uses: gradle/actions/setup-gradle@v4
+
       - name: run test
         run: |
           chmod +x ./gradlew
-          ./gradlew runJava5Test
+          ./gradlew runTest
+
       - name: upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: java-5
           path: build/libs/*.jar
-          compression-level: 1

@@ -21,67 +21,32 @@ jobs:
     steps:
       - name: checkout sources
         uses: actions/checkout@v4
-      - name: validate gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
-      - name: setup java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-      - name: build
-        run: |
-          chmod +x ./gradlew
-          ./gradlew jar
-      - name: upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: normal
-          path: build/libs/*.jar
-          compression-level: 1
 
-  build_5:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout sources
-        uses: actions/checkout@v4
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v2
+
       - name: setup java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 8
+
       - name: setup gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: build
-        run: |
-          chmod +x ./gradlew
-          ./gradlew java5Jar
-      - name: upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: java-5
-          path: build/libs/*.jar
-          compression-level: 1
 
-  publish:
-    needs: [build_latest, build_5]
-    runs-on: ubuntu-latest
-    steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-          merge-multiple: true
-      - id: values
+      - name: build
+        run: ./gradlew jar
+
+      - id: release_options
         run: |
           echo -e "BODY=${{ inputs.release_body }}" >> $GITHUB_OUTPUT
           echo "TAG_NAME=$( ls -p build/libs/ | grep -v / | head -1 | sed -e 's/\..*$//' )" >> $GITHUB_OUTPUT
+
       - name: create release
         uses: svenstaro/upload-release-action@v2
         with:
           release_name: ${{ inputs.release_name }}
-          body: ${{ steps.values.outputs.BODY }}
-          tag_name: ${{ steps.values.outputs.TAG_NAME }}
-          file: artifacts/*
+          body: ${{ steps.release_options.outputs.BODY }}
+          tag_name: ${{ steps.release_options.outputs.TAG_NAME }}
+          file: build/libs/*
           file_glob: true

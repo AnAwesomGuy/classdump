@@ -1,21 +1,11 @@
-import org.objectweb.asm.*
-
-buildscript {
-    repositories.mavenCentral()
-    dependencies {
-        classpath 'org.ow2.asm:asm:9.7'
-    }
-}
-
 plugins {
     id 'java'
 }
 
 group = 'net.anawesomguy'
-version = '1.0'
+version = version
 
 sourceSets {
-    java5
     test {
         compileClasspath -= sourceSets.main.compileClasspath
         runtimeClasspath -= sourceSets.main.runtimeClasspath
@@ -24,19 +14,15 @@ sourceSets {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of 8
 
-compileJava5Java {
+compileJava {
     sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_5
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs.add '-g:none' // disable debug stuffs
-}
-
-tasks.register('java5Jar', Jar) {
-    group 'build'
-    dependsOn compileJava5Java, processJava5Resources
-    from sourceSets.java5.output
-    archiveClassifier = 'java5'
+    options.compilerArgs.addAll(
+            '-g:none', // disable debug stuffs
+            '-Xlint:-options' // supress warning about java 5
+    )
 }
 
 tasks.withType(Jar).configureEach {
@@ -44,31 +30,14 @@ tasks.withType(Jar).configureEach {
     from 'LICENSE'
 }
 
-tasks.register('runMainTest', JavaExec) {
-    dependsOn jar
-    group 'verification'
-    classpath sourceSets.test.runtimeClasspath
-    jvmArgs '-javaagent:' + jar.archiveFile.get() + '=debug'
-    jvmArgs '-Xmx2M'
-    mainClass = 'net.anawesomguy.clsdump.test.Main'
-    workingDir 'build/test-main/'
-    workingDir.deleteDir()
-    workingDir.mkdirs()
-}
-
-tasks.register('runJava5Test', JavaExec) {
+tasks.register('runTest', JavaExec) {
     dependsOn java5Jar
     group 'verification'
     classpath sourceSets.test.runtimeClasspath
     jvmArgs '-javaagent:' + java5Jar.archiveFile.get() + '=debug'
     jvmArgs '-Xmx2M'
     mainClass = 'net.anawesomguy.clsdump.test.Main'
-    workingDir 'build/test-java5/'
+    workingDir 'build/test/'
     workingDir.deleteDir()
     workingDir.mkdirs()
-}
-
-tasks.register('runAllTests') {
-    group 'verification'
-    dependsOn runMainTest, runJava5Test
 }
