@@ -22,18 +22,14 @@ sourceSets {
     }
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of 8
+
 compileJava5Java {
     sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_5
 }
 
 tasks.withType(JavaCompile).configureEach {
-    doLast {
-        files(outputs.files).asFileTree.filter { it.name.endsWith '.class' }.each {
-            def writer = new ClassWriter(0)
-            new ClassReader(it.bytes).accept(writer, ClassReader.SKIP_DEBUG)
-            it.bytes = writer.toByteArray()
-        }
-    }
+    options.compilerArgs.add '-g:none' // disable debug stuffs
 }
 
 tasks.register('java5Jar', Jar) {
@@ -44,7 +40,7 @@ tasks.register('java5Jar', Jar) {
 }
 
 tasks.withType(Jar).configureEach {
-    manifest.attributes(['Premain-Class': 'net.anawesomguy.clsdump.Dumper'])
+    manifest.attributes(['Premain-Class': 'classdump.Dumper'])
     from 'LICENSE'
 }
 
@@ -53,6 +49,7 @@ tasks.register('runMainTest', JavaExec) {
     group 'verification'
     classpath sourceSets.test.runtimeClasspath
     jvmArgs '-javaagent:' + jar.archiveFile.get() + '=debug'
+    jvmArgs '-Xmx2M'
     mainClass = 'net.anawesomguy.clsdump.test.Main'
     workingDir 'build/test-main/'
     workingDir.deleteDir()
@@ -64,6 +61,7 @@ tasks.register('runJava5Test', JavaExec) {
     group 'verification'
     classpath sourceSets.test.runtimeClasspath
     jvmArgs '-javaagent:' + java5Jar.archiveFile.get() + '=debug'
+    jvmArgs '-Xmx2M'
     mainClass = 'net.anawesomguy.clsdump.test.Main'
     workingDir 'build/test-java5/'
     workingDir.deleteDir()

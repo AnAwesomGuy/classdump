@@ -1,4 +1,4 @@
-package net.anawesomguy.clsdump;
+package classdump;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -7,12 +7,14 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 
+@SuppressWarnings("rawtypes")
 public final class Dumper implements ClassFileTransformer {
-    private static final File DIR = new File("_classdump");
+    private static final File DIR;
 
     static {
-        if (DIR.exists())
-            rm(DIR);
+        File dir = DIR = new File("_classdump");
+        if (dir.exists())
+            rm(dir);
     }
 
     private final boolean debug;
@@ -27,30 +29,32 @@ public final class Dumper implements ClassFileTransformer {
             for (File f : file.listFiles())
                 rm(f);
         if (!file.delete())
-            throw new RuntimeException("Failed to delete: ".concat(file.getPath()));
+            throw new RuntimeException("Failed to delete ".concat(file.getPath()));
     }
 
     public static void premain(String args, Instrumentation inst) {
-        System.out.println("Dumping classes to ".concat(DIR.getAbsolutePath()));
         boolean debug = "debug".equalsIgnoreCase(args);
         inst.addTransformer(new Dumper(debug));
 
+        if (debug)
+            System.out.println("Dumping classes to ".concat(DIR.getAbsolutePath()));
+
         //already loaded classes
-        for (Class<?> c : inst.getAllLoadedClasses()) {
-            if (c.isArray())
+        for (Class cls : inst.getAllLoadedClasses()) {
+            if (cls.isArray())
                 continue;
-            String name = c.getName().replace('.', '/');
+            String name = cls.getName().replace('.', '/');
             try {
-                String cls = name.concat(".class");
-                InputStream in = c.getResourceAsStream(cls.substring(name.lastIndexOf('/') + 1));
+                String clsName = name.concat(".class");
+                InputStream in = cls.getResourceAsStream("/".concat(clsName));
                 if (in != null) {
                     try {
-                        File file = new File(DIR, cls);
+                        File file = new File(DIR, clsName);
                         //noinspection ResultOfMethodCallIgnored ???????? (what)
                         file.getParentFile().mkdirs();
                         FileOutputStream out = new FileOutputStream(file);
                         try {
-                            byte[] buf = new byte[8192];
+                            byte[] buf = new byte[8 * 1024];
                             for (int i; (i = in.read(buf)) != -1;)
                                 out.write(buf, 0, i);
                         } finally {
@@ -69,16 +73,19 @@ public final class Dumper implements ClassFileTransformer {
                 e.printStackTrace();
             }
         }
+
+        if (debug)
+            System.out.println(String.valueOf(inst.getAllLoadedClasses().length).concat(" classes loaded during initialization"));
     }
 
-    public byte[] transform(ClassLoader classLoader, String name, Class<?> clazz, ProtectionDomain protectionDomain, byte[] buf) {
+    public byte[] transform(ClassLoader classLoader, String name, Class clazz, ProtectionDomain protectionDomain, byte[] bytes) {
         try {
             File file = new File(DIR, name.concat(".class"));
             //noinspection ResultOfMethodCallIgnored ???????? (what)
             file.getParentFile().mkdirs();
             FileOutputStream out = new FileOutputStream(file);
             try {
-                out.write(buf);
+                out.write(bytes);
             } finally {
                 out.close();
             }

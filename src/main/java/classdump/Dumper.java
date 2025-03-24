@@ -1,4 +1,4 @@
-package net.anawesomguy.clsdump;
+package classdump;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +12,7 @@ import java.security.ProtectionDomain;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
+@SuppressWarnings("rawtypes")
 public final class Dumper implements ClassFileTransformer {
     private static final Path DIR = Paths.get("_classdump");
 
@@ -41,18 +42,21 @@ public final class Dumper implements ClassFileTransformer {
     }
 
     public static void premain(String args, Instrumentation inst) {
-        System.out.println("Dump classes to " + DIR.toAbsolutePath());
         boolean debug = "debug".equalsIgnoreCase(args);
         inst.addTransformer(new Dumper(debug));
+        Class[] classes = inst.getAllLoadedClasses();
+
+        if (debug)
+            System.out.println("Dumping classes to " + DIR.toAbsolutePath());
 
         //already loaded classes
-        for (Class<?> cls : inst.getAllLoadedClasses()) {
+        for (Class cls : classes) {
             if (cls.isArray())
                 continue;
             String name = cls.getName().replace('.', '/');
             try {
                 String clsName = name + ".class";
-                InputStream in = cls.getResourceAsStream(clsName.substring(name.lastIndexOf('/') + 1));
+                InputStream in = cls.getResourceAsStream("/" + clsName);
                 if (in != null) {
                     try {
                         Path path = DIR.resolve(clsName);
@@ -64,20 +68,25 @@ public final class Dumper implements ClassFileTransformer {
                     if (debug)
                         System.out.println("Dumped class " + name);
                 } else if (debug)
-                    System.out.println("Couldn't get bytes for " + name);
+                    System.out.println("Unable to get bytecode for " + name);
             } catch (Exception e) {
                 System.err.println("Unable to dump class " + name);
                 //noinspection CallToPrintStackTrace
                 e.printStackTrace();
             }
         }
+
+
+        if (debug)
+            System.out.println(inst.getAllLoadedClasses().length + " classes loaded during initialization");
     }
 
-    public byte[] transform(ClassLoader classLoader, String name, Class<?> clazz, ProtectionDomain protectionDomain, byte[] buf) {
+    @Override
+    public byte[] transform(ClassLoader classLoader, String name, Class clazz, ProtectionDomain protectionDomain, byte[] bytes) {
         try {
             Path path = DIR.resolve(name + ".class");
             Files.createDirectories(path.getParent());
-            Files.write(path, buf);
+            Files.write(path, bytes);
             if (debug)
                 System.out.println("Dumped class " + name);
         } catch (Exception e) {
