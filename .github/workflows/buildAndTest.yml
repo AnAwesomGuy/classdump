@@ -3,7 +3,7 @@ name: Build and Test
 on: [pull_request, push]
 
 jobs:
-  test_5:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: checkout sources
@@ -29,5 +29,5 @@ jobs:
       - name: upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: java-5
+          name: artifacts
           path: build/libs/*.jar

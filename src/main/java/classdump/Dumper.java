@@ -40,16 +40,20 @@ public final class Dumper implements ClassFileTransformer {
             System.out.println("Dumping classes to ".concat(DIR.getAbsolutePath()));
 
         //already loaded classes
+        int loaded = 0;
         for (Class cls : inst.getAllLoadedClasses()) {
             if (cls.isArray())
                 continue;
             String name = cls.getName().replace('.', '/');
             try {
                 String clsName = name.concat(".class");
+                File file = new File(DIR, clsName);
+                if (file.exists())
+                    continue;
+
                 InputStream in = cls.getResourceAsStream("/".concat(clsName));
                 if (in != null) {
                     try {
-                        File file = new File(DIR, clsName);
                         //noinspection ResultOfMethodCallIgnored ???????? (what)
                         file.getParentFile().mkdirs();
                         FileOutputStream out = new FileOutputStream(file);
@@ -67,6 +71,7 @@ public final class Dumper implements ClassFileTransformer {
                         System.out.println("Dumped class ".concat(name));
                 } else if (debug)
                     System.out.println("Unable to get bytecode for ".concat(name));
+                loaded++;
             } catch (Exception e) {
                 System.err.println("Unable to dump class ".concat(name));
                 //noinspection CallToPrintStackTrace
@@ -75,7 +80,7 @@ public final class Dumper implements ClassFileTransformer {
         }
 
         if (debug)
-            System.out.println(String.valueOf(inst.getAllLoadedClasses().length).concat(" classes loaded during initialization"));
+            System.out.println(String.valueOf(loaded).concat(" classes loaded during initialization"));
     }
 
     public byte[] transform(ClassLoader classLoader, String name, Class clazz, ProtectionDomain protectionDomain, byte[] bytes) {
