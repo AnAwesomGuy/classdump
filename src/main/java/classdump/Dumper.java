@@ -7,7 +7,7 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "CallToPrintStackTrace"})
 public final class Dumper implements ClassFileTransformer {
     private static final File DIR;
 
@@ -17,7 +17,7 @@ public final class Dumper implements ClassFileTransformer {
             rm(dir);
     }
 
-    private final boolean debug;
+    public final boolean debug;
 
     public Dumper(boolean debug) {
         this.debug = debug;
@@ -39,9 +39,11 @@ public final class Dumper implements ClassFileTransformer {
         if (debug)
             System.out.println("Dumping classes to ".concat(DIR.getAbsolutePath()));
 
-        //already loaded classes
-        int loaded = 0;
-        for (Class cls : inst.getAllLoadedClasses()) {
+        // already loaded classes
+        int i = 0;
+        Class[] classes = inst.getAllLoadedClasses();
+        for (int length = classes.length; i < length; i++) {
+            Class cls = classes[i];
             if (cls.isArray())
                 continue;
             String name = cls.getName().replace('.', '/');
@@ -59,8 +61,8 @@ public final class Dumper implements ClassFileTransformer {
                         FileOutputStream out = new FileOutputStream(file);
                         try {
                             byte[] buf = new byte[8 * 1024];
-                            for (int i; (i = in.read(buf)) != -1;)
-                                out.write(buf, 0, i);
+                            for (int j; (j = in.read(buf)) != -1; )
+                                out.write(buf, 0, j);
                         } finally {
                             out.close();
                         }
@@ -71,16 +73,14 @@ public final class Dumper implements ClassFileTransformer {
                         System.out.println("Dumped class ".concat(name));
                 } else if (debug)
                     System.out.println("Unable to get bytecode for ".concat(name));
-                loaded++;
             } catch (Exception e) {
                 System.err.println("Unable to dump class ".concat(name));
-                //noinspection CallToPrintStackTrace
                 e.printStackTrace();
             }
         }
 
         if (debug)
-            System.out.println(String.valueOf(loaded).concat(" classes loaded during initialization"));
+            System.out.println(String.valueOf(i).concat(" classes loaded during initialization"));
     }
 
     public byte[] transform(ClassLoader classLoader, String name, Class clazz, ProtectionDomain protectionDomain, byte[] bytes) {
@@ -98,7 +98,6 @@ public final class Dumper implements ClassFileTransformer {
                 System.out.println("Dumped class ".concat(name));
         } catch (Exception e) {
             System.err.println("Unable to dump class ".concat(name));
-            //noinspection CallToPrintStackTrace
             e.printStackTrace();
         }
         return null;

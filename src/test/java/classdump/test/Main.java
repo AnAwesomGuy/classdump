@@ -1,4 +1,4 @@
-package net.anawesomguy.clsdump.test;
+package classdump.test;
 
 import java.io.PrintStream;
 

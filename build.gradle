@@ -36,7 +36,11 @@ tasks.register('runTest', JavaExec) {
     classpath sourceSets.test.runtimeClasspath
     jvmArgs '-javaagent:' + jar.archiveFile.get() + '=debug'
     jvmArgs '-Xmx2M'
-    mainClass = 'net.anawesomguy.clsdump.test.Main'
+//    jvmArgs '-Djdk.invoke.LambdaMetafactory.dumpProxyClassFiles'
+//    jvmArgs '-Djdk.invoke.MethodHandle.dumpHiddenClassFiles'
+//    jvmArgs '-Djdk.invoke.MethodHandle.dumpClassFiles'
+//    jvmArgs '-Djdk.invoke.MethodHandle.dumpMethodHandleInternals'
+    mainClass = 'classdump.test.Main'
     workingDir 'build/test/'
     workingDir.deleteDir()
     workingDir.mkdirs()
